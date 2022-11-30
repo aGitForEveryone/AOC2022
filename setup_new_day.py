@@ -14,6 +14,7 @@ if __name__ == "__main__":
         type=int,
         choices=range(0, 26),
         default=0,
+        nargs="?",
         help="Select the target day for which to initialize the puzzle. If not "
         "supplied or 0 is given, then today's puzzle will be fetched.",
         metavar="PUZZLE_DAY",
@@ -23,6 +24,17 @@ if __name__ == "__main__":
     if target_day == 0:
         # Fetch today's date
         target_day = datetime.now().day
+        current_month = datetime.now().month
+        # If the script is called outside of advent of codes running time, then
+        # the default argument doesn't work
+        if current_month != 12 or target_day > 25:
+            raise ValueError(
+                f"You are trying to initialize puzzle code for aoc 2022 outside "
+                f"it's normal running time (December 1 to 25). Please specify "
+                f"the day for which code should be initialized by passing a "
+                f"number on the CLI, e.g.:\n"
+                f">>> python setup_new_day.py <day>"
+            )
 
     target_directory = CURRENT_DIRECTORY / f"day{target_day:0>2}"
     if target_directory.exists():
