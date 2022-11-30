@@ -27,9 +27,9 @@ if __name__ == "__main__":
     target_directory = CURRENT_DIRECTORY / f"day{target_day:0>2}"
     if target_directory.exists():
         raise OSError(
-            f"Directory for target AOC day (year 2022) already exists. "
-            f"Requested day {target_day}. PLease manually remove the "
-            f"target directory: {target_directory}"
+            f"Directory for target AOC day (year 2022) already exists "
+            f"(requested day {target_day}).\n"
+            f"PLease manually remove the target directory: {target_directory}"
         )
 
     target_directory.mkdir()
