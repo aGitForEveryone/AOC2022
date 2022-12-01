@@ -66,6 +66,13 @@ def part2(data: list[list[int]]) -> int:
 
 
 def main(parts: str, should_submit: bool = False) -> None:
+    """Main function for solving the selected part(s) of today's puzzle
+    and automatically submitting the answer.
+
+    Args:
+        parts:          "a", "b", or "ab". Execute the chosen parts
+        should_submit:  Set to True if you want to submit your answer
+    """
     data = parse_data()
 
     for part in parts:
@@ -81,7 +88,7 @@ def main(parts: str, should_submit: bool = False) -> None:
 
 
 if __name__ == "__main__":
-    submit_answer = True
-    main("a", submit_answer)
-    main("b", submit_answer)
+    submit_answer = False
+    # main("a", submit_answer)
+    # main("b", submit_answer)
     main("ab", submit_answer)

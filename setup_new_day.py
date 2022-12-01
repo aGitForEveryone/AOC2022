@@ -53,12 +53,16 @@ if __name__ == "__main__":
     from aocd import get_data, submit
     import numpy as np
     
-    data = get_data(day={target_day}, year=2022)
-    lines = data.splitlines()
-    numbers = [int(x) for x in re.findall("(-?\d+)", data)]
+    
+    def parse_data():
+        \"\"\"Parser function to parse today's data\"\"\"
+        data = get_data(day={target_day}, year=2022)
+        # lines = data.splitlines()
+        # numbers = [int(x) for x in re.findall("(-?\d+)", data)]
+        return data
     
     
-    def part1():
+    def part1(data):
         \"\"\"Advent of code 2022 day {target_day} - Part 1\"\"\"
         answer = 0
         
@@ -66,7 +70,7 @@ if __name__ == "__main__":
         return answer
     
         
-    def part2():
+    def part2(data):
         \"\"\"Advent of code 2022 day {target_day} - Part 2\"\"\"
         answer = 0
         
@@ -74,14 +78,34 @@ if __name__ == "__main__":
         return answer
         
     
+    def main(parts: str, should_submit: bool = False) -> None:
+        \"\"\"Main function for solving the selected part(s) of today's puzzle
+        and automatically submitting the answer. 
+        
+        Args:
+            parts:          "a", "b", or "ab". Execute the chosen parts
+            should_submit:  Set to True if you want to submit your answer
+        \"\"\"
+        data = parse_data()
+        
+        for part in parts:
+            if part == "a":
+                aocd_result = part1(data)
+            elif part == "b":
+                aocd_result = part2(data)
+            else:
+                raise ValueError(f"Wrong part chosen, expecting 'a' or 'b': got {{part}}")
+    
+            if should_submit:
+                submit(aocd_result, part=part, day={target_day}, year=2022)
+        
+        
     if __name__ == "__main__":
-        part = "a"
-        # part = "b"
         submit_answer = False
-
-        aocd_result = part1() if part == "a" else part2()
-        if submit_answer:
-            submit(aocd_result, part=part, day={target_day}, year=2022)
+        # submit_answer = True
+        main("a", submit_answer)
+        # main("b", submit_answer)
+        # main("ab", submit_answer)
     """
     )
 
