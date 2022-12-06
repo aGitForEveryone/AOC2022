@@ -1,11 +1,19 @@
-import pprint
 import re
+from typing import TypedDict
 
 from aocd import get_data, submit
-import numpy as np
 
 
-def parse_data(load_test_data: bool = False):
+STACKS = list[str]
+INSTRUCTIONS = list[tuple[int]]
+
+
+class StacksAndInstructions(TypedDict):
+    stacks: STACKS
+    instructions: INSTRUCTIONS
+
+
+def parse_data(load_test_data: bool = False) -> StacksAndInstructions:
     """Parser function to parse today's data
 
     Args:
@@ -19,70 +27,110 @@ def parse_data(load_test_data: bool = False):
     else:
         data = get_data(day=5, year=2022)
 
-    stack, instructions = data.split("\n\n")
+    stacks, instructions = data.split("\n\n")
     instructions = re.findall("move (\d+) from (\d+) to (\d+)", instructions)
     instructions = [
         tuple(int(number) for number in instruction) for instruction in instructions
     ]
-    # instructions = instructions.splitlines()
-    # stack = stack.replace("] [", " ").replace("]", "").replace("[", "").splitlines()
-    # Take the length of the bottom row of the stack, because that should
-    # definitely all be filled, i.e. assuming no empty stacks in the input.
-    parsed_stacks = [
-        "GBDCPR",
-        "GVH",
-        "MPJDQSN",
-        "MNCDGLSP",
-        "SLFPCNBJ",
-        "STGVZDBQ",
-        "QTFHMZB",
-        "FBDMC",
-        "GQCF",
+
+    # The input passes the stacks in a vertical manner like:
+    #     [D]
+    # [N] [C]
+    # [Z] [M] [P]
+    #  1   2   3
+    # This makes parsing the input quite complex. We make our life easier by
+    # transposing the string matrix. This will put the contents of the stack on
+    # one single line instead. Above stack input transposes to:
+    # [(' ', '[', '[', ' '),
+    #  (' ', 'N', 'Z', '1'),
+    #  (' ', ']', ']', ' '),
+    #  (' ', ' ', ' ', ' '),
+    #  ('[', '[', '[', ' '),
+    #  ('D', 'C', 'M', '2'),
+    #  (']', ']', ']', ' '),
+    #  (' ', ' ', ' ', ' '),
+    #  (' ', ' ', '[', ' '),
+    #  (' ', ' ', 'P', '3'),
+    #  (' ', ' ', ']', ' ')]
+    # Now it's just a matter of identifying which lines contain the stacks and
+    # create strings from the tuples. The desired output for above example is:
+    # ['NZ', 'DCM', 'P']
+    # In this code, the stacks are identified by the lines that:
+    #   - have a digit as last character in the tuple
+    #   and
+    #   - have a letter as second to last character in tuple (uppercase or lowercase)
+    # With this method we can parse inputs with 10 or more stacks.
+    # ASSUMPTIONS:
+    #   1. All stacks in the input contain at least 1 item
+    #   2. Items are represented by 1 letter each (both uppercase and lowercase is allowed)
+    #   3. Stack items are aligned in the same column and are aligned above a
+    #      digit, that represents the stack index. For stacks with index >= 10
+    #      the stack items can be aligned above any of the two digits, but the
+    #      items should all be in the same column.
+    # Any vertical stack that doesn't follow above assumptions will not be
+    # detected.
+    transposed_stacks = list(zip(*stacks.splitlines()))
+    actual_stacks = [
+        line[:-1]
+        for line in transposed_stacks
+        if (line[-1].isdigit() and line[-2].isalpha())
     ]
-    if load_test_data:
-        parsed_stacks = ["NZ", "DCM", "P"]
-    # for stack_idx in range(len(stack[-2])):
-    #     new_stack = ""
-    #     # from each line of the input stack, fetch the character at location
-    #     # stack_idx and append it to the new_stack
-    #     for line in stack[:-1]:
-    #         new_stack += line[stack_idx]
-    #     parsed_stacks += [new_stack.strip()]
+    parsed_stacks = ["".join(stack).strip() for stack in actual_stacks]
+
     # lines = data.splitlines()
     # numbers = [int(x) for x in re.findall("(-?\d+)", data)]
     return {"stacks": parsed_stacks, "instructions": instructions}
 
 
-def part1(data):
+def get_top_of_stacks(stacks: STACKS) -> str:
+    """Get the top item of each stack, concatenated in a single string. The
+    order in the string is the same as the stack order in stacks."""
+    stack_string = ""
+    for stack in stacks:
+        if not stack:
+            # In case the stack is empty, we add a space to the output string.
+            stack_string += ' '
+        else:
+            stack_string += stack[0]
+    return stack_string
+
+
+def part1(data: StacksAndInstructions) -> str:
     """Advent of code 2022 day 5 - Part 1"""
+    # Because we will change the stacks inplace, we make a copy of the list so
+    # we don't change the original list.
     stacks = data["stacks"].copy()
     for (num_to_move, source_stack, target_stack) in data["instructions"]:
         if len(stacks[source_stack - 1]) < num_to_move:
-            raise ValueError(f'stack not long enough. Wanted to move: {num_to_move} but source stack is only {len(stacks[source_stack - 1])} long')
+            raise ValueError(
+                f"stack not long enough. Wanted to move: {num_to_move} but "
+                f"source stack is only {len(stacks[source_stack - 1])} long."
+            )
         items_to_move = stacks[source_stack - 1][:num_to_move][::-1]
         stacks[source_stack - 1] = stacks[source_stack - 1][num_to_move:]
         stacks[target_stack - 1] = items_to_move + stacks[target_stack - 1]
 
-    answer = ""
-    for stack in stacks:
-        answer += stack[0]
+    answer = get_top_of_stacks(stacks)
     print(f"Solution day 5, part 1: {answer}")
     return answer
 
 
-def part2(data):
+def part2(data: StacksAndInstructions) -> str:
     """Advent of code 2022 day 5 - Part 2"""
+    # Because we will change the stacks inplace, we make a copy of the list so
+    # we don't change the original list.
     stacks = data["stacks"].copy()
     for (num_to_move, source_stack, target_stack) in data["instructions"]:
         if len(stacks[source_stack - 1]) < num_to_move:
-            raise ValueError(f'stack not long enough. Wanted to move: {num_to_move} but source stack is only {len(stacks[source_stack - 1])} long')
+            raise ValueError(
+                f"stack not long enough. Wanted to move: {num_to_move} but "
+                f"source stack is only {len(stacks[source_stack - 1])} long."
+            )
         items_to_move = stacks[source_stack - 1][:num_to_move]
         stacks[source_stack - 1] = stacks[source_stack - 1][num_to_move:]
         stacks[target_stack - 1] = items_to_move + stacks[target_stack - 1]
 
-    answer = ""
-    for stack in stacks:
-        answer += stack[0]
+    answer = get_top_of_stacks(stacks)
 
     print(f"Solution day 5, part 2: {answer}")
     return answer
@@ -116,8 +164,8 @@ def main(parts: str, should_submit: bool = False, load_test_data: bool = False) 
 if __name__ == "__main__":
     test_data = False
     # test_data = True
-    # submit_answer = False
-    submit_answer = True
+    submit_answer = False
+    # submit_answer = True
     # main("a", should_submit=submit_answer, load_test_data=test_data)
-    main("b", should_submit=submit_answer, load_test_data=test_data)
-    # main("ab", should_submit=submit_answer, load_test_data=test_data)
+    # main("b", should_submit=submit_answer, load_test_data=test_data)
+    main("ab", should_submit=submit_answer, load_test_data=test_data)
