@@ -1,7 +1,6 @@
 import re
 
 from aocd import get_data, submit
-import numpy as np
 
 
 def evaluate_round(opponent_move: str, player_move: str) -> int:

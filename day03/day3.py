@@ -1,7 +1,4 @@
-import re
-
 from aocd import get_data, submit
-import numpy as np
 
 
 def parse_data() -> list[str]:

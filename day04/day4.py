@@ -2,7 +2,6 @@ import re
 from typing import Callable
 
 from aocd import get_data, submit
-import numpy as np
 
 
 ELF_RANGE = tuple[int, int]
