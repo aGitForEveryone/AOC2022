@@ -53,6 +53,8 @@ if __name__ == "__main__":
     from aocd import get_data, submit
     import numpy as np
     
+    import helper_functions
+    
     
     def parse_data(load_test_data: bool = False):
         \"\"\"Parser function to parse today's data
@@ -68,6 +70,7 @@ if __name__ == "__main__":
         else:
             data = get_data(day={target_day}, year=2022)
         # lines = data.splitlines()
+        # grid = np.array(helper_functions.digits_to_int(data.splitlines()))
         # numbers = [int(x) for x in re.findall("(-?\d+)", data)]
         return data
     

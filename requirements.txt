@@ -1,3 +1,4 @@
 advent-of-code-data==1.2.2
 numpy==1.23.5
+anytree==2.8.0
 
