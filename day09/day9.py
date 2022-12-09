@@ -110,7 +110,7 @@ def part1(data: list[str]) -> int:
     return answer
 
 
-def part2(data):
+def part2(data: list[str]) -> int:
     """Advent of code 2022 day 9 - Part 2"""
     _, tail_locations = process_commands(
         data, length_rope=10, register_tail_locations=True
