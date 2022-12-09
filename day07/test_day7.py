@@ -8,7 +8,7 @@ import json
 from pathlib import Path
 
 
-from day07 import day7
+from . import day7
 
 
 TEST_FOLDER = Path(__file__).parent
@@ -27,12 +27,7 @@ class TestDay7(unittest.TestCase):
 
     def test_create_file_system(self):
         """Test day7.create_file_system"""
-        commands = [
-            '$ cd /',
-            '$ cd a',
-            '$ cd ..',
-            '$ cd b'
-        ]
+        commands = ["$ cd /", "$ cd a", "$ cd ..", "$ cd b"]
         commands = """$ cd /
 $ ls
 dir brdsppd
