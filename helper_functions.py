@@ -1,4 +1,6 @@
-from typing import Union, Sequence, Callable
+from enum import Enum
+from typing import Union, Sequence, Callable, Self
+import math
 
 import numpy as np
 
@@ -57,3 +59,49 @@ def pad_numpy_array(
                             all axes.
     """
     return np.pad(np_array, pad_width, mode="constant", constant_values=padding_symbol)
+
+
+def get_sign(number: Union[int, float], sign_zero: int = 0) -> int:
+    """Return sign of a number. sign_zero defines what is returned when
+    number = 0:
+     5 ->  1
+    -2 -> -1,
+     0 ->  sign_zero
+    """
+    if number > 0:
+        return 1
+    elif number < 0:
+        return -1
+    else:
+        return sign_zero
+
+
+class Coordinate(tuple):
+    def __new__(cls, *data) -> Self:
+        return super().__new__(cls, data)
+
+    def __add__(self, other: Self) -> Self:
+        """Redefine how Coordinates add together"""
+        assert len(self) == len(other)
+        return Coordinate(*[x + y for x, y in zip(self, other)])
+
+    def __sub__(self, other: Self) -> Self:
+        assert len(self) == len(other)
+        return Coordinate(*[x - y for x, y in zip(self, other)])
+
+    def distance(self, other: Self) -> float:
+        """Calculate the euclidian distance between two coordinates"""
+        return math.sqrt(sum([(x - y) ** 2 for x, y in zip(self, other)]))
+
+    def is_touching(self, other: Self, overlap: bool = True) -> bool:
+        """True is self and other are located at most 1 step away for each axis.
+        overlap indicates if coordinates are touching when on the same
+        coordinate."""
+        return all([abs(x - y) <= 1 for x, y in zip(self, other)])
+
+
+class Direction(Enum):
+    LEFT = Coordinate(0, -1)
+    UP = Coordinate(-1, 0)
+    RIGHT = Coordinate(0, 1)
+    DOWN = Coordinate(1, 0)

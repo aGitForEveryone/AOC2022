@@ -2,6 +2,7 @@
 """
 @author: Tobias Van Damme
 """
+import math
 import unittest
 import json
 from pathlib import Path
@@ -140,6 +141,33 @@ class TestHelperFunctions(unittest.TestCase):
             helper_functions.pad_numpy_array(test_grid, -1, pad_width=((1, 2), (3, 4))),
             specific_padded_grid,
         )
+
+    def test_coordinate(self):
+        """Test coordinate class"""
+        coordinate1 = helper_functions.Coordinate(1, 2)
+        coordinate2 = helper_functions.Coordinate(3, 4)
+        coordinate3 = helper_functions.Coordinate(-2, 49)
+        assert coordinate1 + coordinate2 == (4, 6)
+        assert coordinate1 + coordinate3 == (-1, 51)
+
+        assert coordinate1.distance(coordinate2) == math.sqrt(8)
+
+        assert not coordinate1.is_touching(coordinate2)
+        for distance in [(0, 1), (0, 0), (1, 1), (-1, 1)]:
+            assert coordinate1.is_touching(coordinate1 + distance)
+
+        print(f"x = {coordinate1[0]}, y = {coordinate1[1]}")
+
+    def test_get_sign(self):
+        """Test helper_functions.get_sign"""
+        assert helper_functions.get_sign(-5) == -1
+        assert helper_functions.get_sign(0) == 0
+        assert helper_functions.get_sign(0, sign_zero=1) == 1
+        assert helper_functions.get_sign(2.5465) == 1
+
+    def test_manual(self):
+        """Some manual testing"""
+        print(f"{type(helper_functions.Direction.LEFT.value)}")
 
 
 if __name__ == "__main__":

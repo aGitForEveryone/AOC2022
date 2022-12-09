@@ -1,10 +1,8 @@
-import re
-from enum import Enum
-
 from aocd import get_data, submit
 import numpy as np
 
 import helper_functions
+from helper_functions import Direction
 
 
 def parse_data(load_test_data: bool = False) -> np.ndarray:
@@ -58,13 +56,6 @@ def check_visibility(grid: np.ndarray, visibility_grid: np.ndarray) -> None:
             if grid[num_rows - row - 1, col] > highest_tree_bottom:
                 visibility_grid[num_rows - row - 1, col] = 1
                 highest_tree_bottom = grid[num_rows - row - 1, col]
-
-
-class Direction(Enum):
-    LEFT = (0, -1)
-    UP = (-1, 0)
-    RIGHT = (0, 1)
-    DOWN = (1, 0)
 
 
 def scan_along_direction(
