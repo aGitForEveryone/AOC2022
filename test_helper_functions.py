@@ -156,7 +156,8 @@ class TestHelperFunctions(unittest.TestCase):
         for distance in [(0, 1), (0, 0), (1, 1), (-1, 1)]:
             assert coordinate1.is_touching(coordinate1 + distance)
 
-        print(f"x = {coordinate1[0]}, y = {coordinate1[1]}")
+        assert not coordinate1.is_touching(coordinate1, overlap=False)
+        assert coordinate1.is_touching(coordinate1, overlap=True)
 
     def test_get_sign(self):
         """Test helper_functions.get_sign"""

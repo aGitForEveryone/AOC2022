@@ -97,6 +97,8 @@ class Coordinate(tuple):
         """True is self and other are located at most 1 step away for each axis.
         overlap indicates if coordinates are touching when on the same
         coordinate."""
+        if not overlap and self == other:
+            return False
         return all([abs(x - y) <= 1 for x, y in zip(self, other)])
 
 
