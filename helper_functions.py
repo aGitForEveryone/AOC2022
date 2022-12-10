@@ -107,3 +107,8 @@ class Direction(Enum):
     UP = Coordinate(-1, 0)
     RIGHT = Coordinate(0, 1)
     DOWN = Coordinate(1, 0)
+
+
+class Processor:
+    def __init__(self, memory: dict[str, int]) -> None:
+        self.memory = memory
