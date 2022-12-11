@@ -1,12 +1,37 @@
 from enum import Enum
 from typing import Union, Sequence, Callable, Self
 import math
+import time
+from functools import wraps
 
 import numpy as np
 
 
+def timer(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        # Record the start time
+        start_time = time.time()
+
+        # Call the function being decorated
+        result = func(*args, **kwargs)
+
+        # Record the end time
+        end_time = time.time()
+
+        # Print the elapsed time
+        print(f"Elapsed time for {func.__name__}: {end_time - start_time} seconds")
+
+        # Return the result of the decorated function
+        return result
+
+    # Return the wrapper function
+    return wrapper
+
+
 class Characters(Enum):
     WHITE_BLOCK = "\u2588"
+    BLACK_BLOCK = "\u2591"
 
 
 def digits_to_int(
