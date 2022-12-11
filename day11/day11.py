@@ -8,6 +8,10 @@ import helper_functions
 
 
 class Monkey:
+    # Largest worry level to consider, whenever item worry levels grow above
+    # this value, the worry level can be reduced by:
+    #   item_worry_level % largest_worry_level
+    # This value is set as class variable so every monkey instance can access it
     largest_worry_level = None
 
     def __init__(
@@ -15,7 +19,7 @@ class Monkey:
         item_list: list[int],
         update_worry_level: Callable,
         test_worry_level: Callable,
-    ):
+    ) -> None:
         """
 
         Args:
@@ -28,20 +32,19 @@ class Monkey:
             test_worry_level:       Callable that takes a worry level and
                                     returns a boolean that will decide to which
                                     monkey the item gets thrown.
-            largest_worry_level:    Largest worry level to consider, everything
-                                    above can be reduced
         """
         self.item_list = item_list
         self.update_worry_level = update_worry_level
         self.test_worry_level = test_worry_level
-        # Target monkeys cannot be set during initialization since, target
-        # monkeys potentially do not exist yet
+        # Target monkeys cannot be set during initialization since the class
+        # instances for the target monkeys potentially do not exist yet
         self.target_monkeys = None
         self._number_of_items_inspected = 0
 
     def set_target_monkeys(self, target_monkeys: dict[bool, Self]) -> None:
         """Set monkeys to throw items to depending on the result of
-        test_worry_level."""
+        test_worry_level. target_monkeys is a dict with keys True and False, and
+        a Monkey class instance for each as value."""
         self.target_monkeys = target_monkeys
 
     def do_turn(self) -> None:
@@ -58,13 +61,12 @@ class Monkey:
         self.item_list = []
 
     def _inspect_item(self, item_worry_level: int) -> int:
-        """Return the new worry level after the monkey inspected the item. After
-        the monkeys' worry level update function is called, it is checked if the
-        item is damaged or not.
-        If not damaged, the worry level is divided by 3
-        and rounded down to the nearest integer."""
+        """Return the new worry level after the monkey inspected the item.
+        If the items' worry level exceeds the largest allowed worry level, it is
+        reduced using the modulus operator. If largest allowed worry level is
+        unset, this operation is ignored."""
         new_worry_level = self.update_worry_level(item_worry_level)
-        if new_worry_level > self.largest_worry_level:
+        if self.largest_worry_level and new_worry_level > self.largest_worry_level:
             new_worry_level %= self.largest_worry_level
         return new_worry_level
 
@@ -104,19 +106,24 @@ def parse_monkeys(data: list[str], divide_worry_by: int = 3) -> list[Monkey]:
     """
     target_monkeys = []
     monkeys = []
+    # All the monkeys evaluate the items worry level by checking divisibility
+    # by a prime number. When encountering very high item worry levels, we can
+    # use the least common multiple to reduce the items' worry level. Since the
+    # monkeys only check primes, this is simply the multiplication of all the
+    # primes in the test
     largest_worry_level = 1
     if not divide_worry_by:
         divide_worry_by = 1
     for monkey in data:
         monkey_data = monkey.splitlines()
-        # print(f'{monkey_data = }')
 
         starting_items = helper_functions.digits_to_int(
-            re.findall("-?\d+", monkey_data[1]), individual_character=False
+            re.findall("-?\d+", monkey_data[1]),
+            individual_character=False,
+            return_type=list,
         )
 
-        # print(f'Operation: "{monkey_data[2].split("= ")[1]}"')
-        worry_updater = (
+        worry_level_updater = (
             lambda old, operation=(monkey_data[2].split("= ")[1]): eval(operation)
             // divide_worry_by
         )
@@ -140,7 +147,7 @@ def parse_monkeys(data: list[str], divide_worry_by: int = 3) -> list[Monkey]:
         monkeys += [
             Monkey(
                 starting_items,
-                update_worry_level=worry_updater,
+                update_worry_level=worry_level_updater,
                 test_worry_level=test_worry_level,
             )
         ]
@@ -269,15 +276,6 @@ def do_number_of_rounds(
                     activity_increase_remaining_rounds,
                 )
             ]
-            # for monkey, activity_increase, start_activity_level in zip(
-            #     monkeys,
-            #     activity_increase_per_loop,
-            #     cache[current_item_list_state]["activity_levels"],
-            # ):
-            #     monkey.set_activity_level(
-            #         activity_increase * number_loops_in_total_rounds
-            #         + start_activity_level
-            #     )
 
             print(
                 f"Loop found at the start of round {round_number}!\n"
@@ -297,15 +295,9 @@ def part1(data: list[str]) -> int:
     """Advent of code 2022 day 11 - Part 1"""
     monkeys = parse_monkeys(data, divide_worry_by=3)
     number_of_rounds = 20
-    # for round_number in range(number_of_rounds):
-    #     perform_round(monkeys)
-    # cache_item_list = {get_state_item_lists(monkeys)}
-    # remaining_rounds = do_number_of_rounds(monkeys, number_of_rounds, {})
-    # _ = do_number_of_rounds(monkeys, remaining_rounds, {})
-    #
-    # number_interactions = sorted([monkey.activity_level for monkey in monkeys])
     number_interactions = sorted(do_number_of_rounds(monkeys, number_of_rounds, {}))
 
+    # Multiply the two highest activity levels
     answer = number_interactions[-1] * number_interactions[-2]
 
     print(f"Solution day 11, part 1: {answer}")
@@ -318,15 +310,11 @@ def part2(data: list[str]) -> int:
     monkeys = parse_monkeys(data, divide_worry_by=1)
     number_of_rounds = 10_000
     number_interactions = sorted(do_number_of_rounds(monkeys, number_of_rounds, {}))
-    # remaining_rounds = do_number_of_rounds(monkeys, number_of_rounds, {})
-    # _ = do_number_of_rounds(monkeys, remaining_rounds, {})
 
-    # number_interactions = sorted([monkey.activity_level for monkey in monkeys])
+    # Multiply the two highest activity levels
     answer = number_interactions[-1] * number_interactions[-2]
 
     print(f"Solution day 11, part 2: {answer:_}")
-    expected_result = 27_267_163_742
-    assert answer == expected_result, f"off by {expected_result - answer:_}"
     return answer
 
 
