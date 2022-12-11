@@ -1,5 +1,5 @@
-import re
-from typing import Callable
+import os
+from typing import Callable, Union
 
 from aocd import get_data, submit
 import numpy as np
@@ -34,15 +34,16 @@ class CathodeRayScreenProcessor(Processor):
         'addx': 2
     }
     sprite = '###'
-    pixel_on = '#'
-    pixel_off = '.'
+    pixel_on = helper_functions.Characters.WHITE_BLOCK.value
+    pixel_off = ' '
     # screen size is: 40 pixels per row, 6 rows
     screen_rows = 6
     screen_pixels_per_row = 40
     screen = [pixel_off] * screen_pixels_per_row * screen_rows
 
     def __init__(self, memory: dict[str, int], clock: int,
-                 evaluate_clock_cycle: Callable, evaluate_state: Callable = None
+                 evaluate_clock_cycle: Callable, evaluate_state: str = 'draw',
+                 print_cycle: Callable = None
                  ) -> None:
         """Set the initial state of the processor
 
@@ -61,11 +62,19 @@ class CathodeRayScreenProcessor(Processor):
         super().__init__(memory)
         self.clock = clock
         self.evaluate_clock_cycle = evaluate_clock_cycle
-        if not evaluate_state:
-            self.evaluate_state = self.draw_pixel
+
+        match evaluate_state:
+            case 'draw':
+                self.evaluate_state = self.draw_pixel
+            case 'signal_strength':
+                self.evaluate_state = self.signal_strength
+
+        if not print_cycle:
+            self.print_cycle = lambda _: False
         else:
-            self.evaluate_state = evaluate_state
-        self.internal_state = 0
+            self.print_cycle = print_cycle
+
+        self.total_signal_strength = 0
 
     def update(self, instruction: str) -> None:
         """Perform the instruction and update the internal processor state"""
@@ -83,8 +92,15 @@ class CathodeRayScreenProcessor(Processor):
     def update_clock(self) -> None:
         """Updates the clock and checks whether the internal state needs to be
         evaluated"""
-        self.clock += 1
         self._evaluate_state()
+        self._print_state()
+        self.clock += 1
+
+    def signal_strength(self) -> None:
+        """Calculate the signal strength from the current memory state and the
+        state of the clock"""
+        signal_strength = self.clock * self.memory['x']
+        self.total_signal_strength += signal_strength
 
     def draw_pixel(self) -> None:
         """Select the pixel to be drawn"""
@@ -92,10 +108,15 @@ class CathodeRayScreenProcessor(Processor):
         current_sprite_location = list(
             range(start_sprite, start_sprite + len(self.sprite))
         )
-
-        self.screen[self.clock % len(self.screen)] = (
+        # Screen index runs from
+        #   0 to self.screen_rows * self.screen_pixels_per_row
+        # However, the sprite location runs from
+        #   0 to self.screen_pixels_per_row
+        screen_idx = (self.clock - 1) % len(self.screen)
+        col_idx = screen_idx % self.screen_pixels_per_row
+        self.screen[screen_idx] = (
             self.pixel_on
-            if self.clock in current_sprite_location
+            if col_idx in current_sprite_location
             else self.pixel_off
         )
 
@@ -103,13 +124,23 @@ class CathodeRayScreenProcessor(Processor):
         """Draw screen"""
         for row_idx in range(self.screen_rows):
             row_start = row_idx * self.screen_pixels_per_row
-            print("".join(self.screen[row_start : row_start + self.screen_pixels_per_row])
+            print(
+                "".join(
+                    self.screen[row_start : row_start + self.screen_pixels_per_row]
+                )
+            )
 
     def _evaluate_state(self):
         """The state of this processor should be evaluated at certain clock
         cycles"""
         if self.evaluate_clock_cycle(self.clock):
-            self.internal_state = self.evaluate_state(self.clock, self.memory)
+            self.evaluate_state()
+
+    def _print_state(self):
+        """The state of this processor should be printed at certain clock
+        cycles"""
+        if self.print_cycle(self.clock):
+            self.draw_screen()
 
 
 def relevant_clock_cycles(clock: int) -> bool:
@@ -118,29 +149,14 @@ def relevant_clock_cycles(clock: int) -> bool:
     return (clock - 20) % 40 == 0
 
 
-def sum_signal_strengths() -> Callable:
-    signal_strength_sum = 0
-
-    def check_signal_strength(clock: int, memory: dict[str, int]) -> int:
-        """Calculate the signal strength from the current memory state and the
-        state of the clock"""
-        nonlocal signal_strength_sum
-        signal_strength = clock * memory['x']
-        signal_strength_sum += signal_strength
-        return signal_strength_sum
-
-    return check_signal_strength
-
-
 def part1(data: list[str]) -> int:
     """Advent of code 2022 day 10 - Part 1"""
     screen_processor = CathodeRayScreenProcessor(
-        memory={'x': 1}, clock=0, evaluate_clock_cycle=relevant_clock_cycles,
-        evaluate_state=sum_signal_strengths())
+        memory={'x': 1}, clock=1, evaluate_clock_cycle=relevant_clock_cycles,
+        evaluate_state='signal_strength')
     for instruction in data:
         screen_processor.update(instruction)
-    answer = screen_processor.internal_state
-    # print(data)
+    answer = screen_processor.total_signal_strength
 
     print(f"Solution day 10, part 1: {answer}")
     return answer
@@ -152,14 +168,21 @@ def should_draw_pixel(clock: int) -> bool:
     return True
 
 
+def print_all_steps(clock: int) -> bool:
+    """Print the screen for each clock cycle of the screen processor"""
+    return False
+
+
 def part2(data: list[str]) -> None:
     """Advent of code 2022 day 10 - Part 2"""
     screen_processor = CathodeRayScreenProcessor(
-        memory={'x': 1}, clock=0, evaluate_clock_cycle=should_draw_pixel)
+        memory={'x': 1}, clock=1, evaluate_clock_cycle=should_draw_pixel,
+        evaluate_state='draw', print_cycle=print_all_steps
+    )
     for instruction in data:
         screen_processor.update(instruction)
+    screen_processor.draw_screen()
     answer = 0
-
 
     print(f"Solution day 10, part 2: {answer}")
     return answer
@@ -196,5 +219,5 @@ if __name__ == "__main__":
     submit_answer = False
     # submit_answer = True
     # main("a", should_submit=submit_answer, load_test_data=test_data)
-    main("b", should_submit=submit_answer, load_test_data=test_data)
-    # main("ab", should_submit=submit_answer, load_test_data=test_data)
+    # main("b", should_submit=submit_answer, load_test_data=test_data)
+    main("ab", should_submit=submit_answer, load_test_data=test_data)

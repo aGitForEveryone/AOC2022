@@ -5,6 +5,10 @@ import math
 import numpy as np
 
 
+class Characters(Enum):
+    WHITE_BLOCK = "\u2588"
+
+
 def digits_to_int(
     data: Union[Sequence[str], str],
     individual_character: bool = True,
