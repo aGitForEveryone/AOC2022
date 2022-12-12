@@ -159,6 +159,11 @@ class TestHelperFunctions(unittest.TestCase):
         assert not coordinate1.is_touching(coordinate1, overlap=False)
         assert coordinate1.is_touching(coordinate1, overlap=True)
 
+        assert coordinate2 > coordinate1
+        assert coordinate1 < coordinate2
+        assert coordinate2 >= coordinate1 + (0, 2)
+        assert coordinate1 <= coordinate2 - (2, 0)
+
     def test_get_sign(self):
         """Test helper_functions.get_sign"""
         assert helper_functions.get_sign(-5) == -1

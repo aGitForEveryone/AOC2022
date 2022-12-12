@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import Union, Sequence, Callable, Self
+from typing import Union, Sequence, Callable, Self, Any
 import math
 import time
 from functools import wraps
@@ -117,6 +117,22 @@ class Coordinate(tuple):
     def __sub__(self, other: Self) -> Self:
         assert len(self) == len(other)
         return Coordinate(*[x - y for x, y in zip(self, other)])
+
+    def __gt__(self, other: Self) -> bool:
+        assert len(self) == len(other)
+        return all([x > y for x, y in zip(self, other)])
+
+    def __lt__(self, other: Self) -> bool:
+        assert len(self) == len(other)
+        return all([x < y for x, y in zip(self, other)])
+
+    def __ge__(self, other: Self) -> bool:
+        assert len(self) == len(other)
+        return all([x >= y for x, y in zip(self, other)])
+
+    def __le__(self, other: Self) -> bool:
+        assert len(self) == len(other)
+        return all([x <= y for x, y in zip(self, other)])
 
     def distance(self, other: Self) -> float:
         """Calculate the euclidian distance between two coordinates"""
