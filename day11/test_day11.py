@@ -12,13 +12,12 @@ import numpy as np
 import helper_functions
 from . import day11
 
-
 TEST_FOLDER = Path(__file__).parent
 
 with open(TEST_FOLDER / "input11.1", "r") as f:
     # For loading example or test data
     data = f.read()
-    monkeys = day11.parse_monkeys(data.split('\n\n'))
+    monkeys = day11.parse_monkeys(data.split("\n\n"))
 
 
 class TestDay11(unittest.TestCase):
@@ -41,14 +40,14 @@ class TestDay11(unittest.TestCase):
         # operation = 'old * 19'
         # test = lambda old: eval(operation)
         # assert 1501 == test(worry_level), f'test: {new_worry_level = }, expected 1501'
-        print(f'{monkeys[0].update_worry_level(2) = }')
-        print(f'{monkeys[1].update_worry_level(2) = }')
-        print(f'{monkeys[2].update_worry_level(2) = }')
-        print(f'{monkeys[3].update_worry_level(2) = }')
-        print(f'{monkeys[0].test_worry_level(23) = }')
-        print(f'{monkeys[1].test_worry_level(19) = }')
-        print(f'{monkeys[2].test_worry_level(13) = }')
-        print(f'{monkeys[3].test_worry_level(17) = }')
+        print(f"{monkeys[0].update_worry_level(2) = }")
+        print(f"{monkeys[1].update_worry_level(2) = }")
+        print(f"{monkeys[2].update_worry_level(2) = }")
+        print(f"{monkeys[3].update_worry_level(2) = }")
+        print(f"{monkeys[0].test_worry_level(23) = }")
+        print(f"{monkeys[1].test_worry_level(19) = }")
+        print(f"{monkeys[2].test_worry_level(13) = }")
+        print(f"{monkeys[3].test_worry_level(17) = }")
         # assert new_worry_level == 1501, f'{new_worry_level = }, expected 1501'
 
 
