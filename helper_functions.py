@@ -107,6 +107,20 @@ def get_sign(number: Union[int, float], sign_zero: int = 0) -> int:
 
 class Coordinate(tuple):
     def __new__(cls, *data) -> Self:
+        """Be adding this call we allow coordinate creation via Coordinate(x, y)
+        instead of Coordinate((x, y))"""
+        assert isinstance(data, tuple), (
+            f"Incoming data should have been "
+            f"formatted as tuple, actual "
+            f"data: {data}"
+        )
+        if len(data) == 1 and isinstance(data[0], (tuple, list)):
+            # If coordinate was instantiated by Coordinate((x, y)) or
+            # Coordinate([x, y]), we need to unpack the data. Otherwise, a
+            # coordinate is created as ((x, y),).
+            # However, we should not catch the case where Coordinate was called
+            # as: Coordinate(1)
+            data = data[0]
         return super().__new__(cls, data)
 
     def __add__(self, other: Self) -> Self:
@@ -157,3 +171,23 @@ class Direction(Enum):
 class Processor:
     def __init__(self, memory: dict[str, int]) -> None:
         self.memory = memory
+
+
+class LineSegment:
+    def __init__(self, start: Coordinate, end: Coordinate) -> None:
+        """Create line segment"""
+        if not any([x == y for x, y in zip(start, end)]):
+            raise NotImplementedError(
+                f"Attempted to create a diagonal line segment with "
+                f"{start = } and {end =}. However, this class currently only "
+                f"supports horizontal or vertical lines."
+            )
+        self.start = start
+        self.end = end
+
+    def intersect(self, point: Coordinate) -> bool:
+        """Check if point lies on the line segment."""
+        return self.start <= point <= self.end
+
+    def __repr__(self) -> str:
+        return f'{self.start} -> {self.end}'
