@@ -182,12 +182,27 @@ class LineSegment:
                 f"{start = } and {end =}. However, this class currently only "
                 f"supports horizontal or vertical lines."
             )
+        if start >= end:
+            # We enforce that the start of a line segment is always smaller
+            # than the end
+            start, end = end, start
         self.start = start
         self.end = end
 
     def intersect(self, point: Coordinate) -> bool:
         """Check if point lies on the line segment."""
+        # print(f"Intersection? {self.start = }, {point = }, {self.end = }")
         return self.start <= point <= self.end
 
+    def __iter__(self):
+        """Return all points in the line segment"""
+        direction = tuple(
+            get_sign(coordinate, sign_zero=0) for coordinate in self.end - self.start
+        )
+        point = self.start
+        while point <= self.end:
+            yield point
+            point += direction
+
     def __repr__(self) -> str:
-        return f'{self.start} -> {self.end}'
+        return f"{self.start} -> {self.end}"
