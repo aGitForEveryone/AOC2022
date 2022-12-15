@@ -1,3 +1,4 @@
+import functools
 import re
 
 from aocd import get_data, submit
@@ -55,7 +56,7 @@ def get_grid_dimensions(raw_data: str) -> (int, int, int):
     """Get the height and width of the section containing rocks. Also return the
     left most coordinate, so we can shift all coordinates close to 0"""
     # Coordinates are numbers separated by a comma in the original input
-    coordinates = re.findall('(\d+),(\d+)', raw_data)
+    coordinates = re.findall("(\d+),(\d+)", raw_data)
     col, row = zip(*coordinates)
     col = list(map(int, col))
     row = list(map(int, row))
@@ -88,12 +89,7 @@ def construct_grid(line_segments: list[LineSegment], height: int) -> np.ndarray:
 
 def print_grid(grid: np.ndarray, symbols: dict = None) -> None:
     """Prints the grid with the given symbols"""
-    grid_symbols = {
-        0: '.',
-        1: '#',
-        2: 'o',
-        3: '+'
-    }
+    grid_symbols = {0: ".", 1: "#", 2: "o", 3: "+"}
     if not symbols:
         symbols = grid_symbols
     else:
@@ -112,16 +108,22 @@ def is_particle_blocked(
 ) -> bool:
     """Check if the potential location is free for the sand particle to move in.
     If it contains rock or sand, then it is not."""
+
+    @functools.lru_cache
+    def intersects_line_segment(location: Coordinate) -> bool:
+        """Separate function for checking intersection of line segments so we
+        can use memoization to speed up the calculation"""
+        for line_segment in line_segments:
+            if line_segment.intersect(location):
+                # We hit rock!
+                return True
+        return False
+
     if potential_location in sand_particles_in_rest:
         # We hit sand!
         return True
-    for line_segment in line_segments:
-        if line_segment.intersect(potential_location):
-            # We hit rock!
-            return True
 
-    # Nothing stopping us!
-    return False
+    return intersects_line_segment(potential_location)
 
 
 def drop_sand_particle(
@@ -135,7 +137,6 @@ def drop_sand_particle(
     reached the start of the void, then we exit the function."""
     while particle_location[1] < start_of_void:
         next_location = particle_location + (0, 1)
-        # print(f"{next_location = }")
         if is_particle_blocked(next_location, line_segments, sand_particles_in_rest):
             # Straight down didn't work, try diagonal left from current particle
             # location instead
@@ -165,24 +166,19 @@ def fill_cavern(
     Return the number of sand particles that came to rest in the cavern"""
     sand_particles_in_rest = set()
     # Keep dropping sand particles, until one reaches the stop condition
-    while (
-        (
-            final_location := drop_sand_particle(
-                start_location, start_of_void, line_segments, sand_particles_in_rest
-            )
+    while True:
+        final_location = drop_sand_particle(
+            start_location, start_of_void, line_segments, sand_particles_in_rest
         )
-        != stop_condition
-    ) or (stop_condition == VOID and final_location[1] < start_of_void):
+        if stop_condition == VOID and final_location[1] == start_of_void:
+            return len(sand_particles_in_rest)
+        elif final_location == stop_condition:
+            # When we need to stop at a specific coordinate, then we also
+            # include that coordinate in the number of total sand particles in
+            # the cavern
+            return len(sand_particles_in_rest) + 1
+
         sand_particles_in_rest.add(final_location)
-
-    if stop_condition != VOID:
-        # The location of the stop condition was not added to the set of sand
-        # particles in rest. When dealing with the void, particles will stream
-        # forever, so we should ignore the stop condition. Otherwise, a particle
-        # will end up in the location of the stop condition, and we add it here.
-        sand_particles_in_rest.add(stop_condition)
-
-    return len(sand_particles_in_rest)
 
 
 def part1(data: list[str]) -> int:
@@ -233,8 +229,8 @@ def main(parts: str, should_submit: bool = False, load_test_data: bool = False) 
 if __name__ == "__main__":
     test_data = False
     # test_data = True
-    # submit_answer = False
-    submit_answer = True
-    # main("a", should_submit=submit_answer, load_test_data=test_data)
-    main("b", should_submit=submit_answer, load_test_data=test_data)
+    submit_answer = False
+    # submit_answer = True
+    main("a", should_submit=submit_answer, load_test_data=test_data)
+    # main("b", should_submit=submit_answer, load_test_data=test_data)
     # main("ab", should_submit=submit_answer, load_test_data=test_data)
