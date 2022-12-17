@@ -12,22 +12,26 @@ SYMBOL_ROCK = "#"
 SYMBOL_AIR = "."
 
 POSSIBLE_ROCKS = [
-    [SYMBOL_ROCK * 4],
-    [
-        SYMBOL_AIR + SYMBOL_ROCK + SYMBOL_AIR,
-        SYMBOL_ROCK * 3,
-        SYMBOL_AIR + SYMBOL_ROCK + SYMBOL_AIR,
-    ],
-    [
-        SYMBOL_AIR + SYMBOL_AIR + SYMBOL_ROCK,
-        SYMBOL_AIR + SYMBOL_AIR + SYMBOL_ROCK,
-        SYMBOL_ROCK * 3,
-    ],
-    [SYMBOL_ROCK, SYMBOL_ROCK, SYMBOL_ROCK, SYMBOL_ROCK],
-    [SYMBOL_ROCK * 2, SYMBOL_ROCK * 2],
+    tuple((SYMBOL_ROCK * 4)),
+    tuple(
+        (
+            SYMBOL_AIR + SYMBOL_ROCK + SYMBOL_AIR,
+            SYMBOL_ROCK * 3,
+            SYMBOL_AIR + SYMBOL_ROCK + SYMBOL_AIR,
+        )
+    ),
+    tuple(
+        (
+            SYMBOL_AIR + SYMBOL_AIR + SYMBOL_ROCK,
+            SYMBOL_AIR + SYMBOL_AIR + SYMBOL_ROCK,
+            SYMBOL_ROCK * 3,
+        )
+    ),
+    tuple((SYMBOL_ROCK, SYMBOL_ROCK, SYMBOL_ROCK, SYMBOL_ROCK)),
+    tuple((SYMBOL_ROCK * 2, SYMBOL_ROCK * 2)),
 ]
 
-ROCK = list[str]
+ROCK = tuple[str]
 ROCK_LOCATION = list[Coordinate]
 
 
@@ -42,7 +46,7 @@ def initial_position_rocks(
         # Coordinates work in reverse in grid, moving up is a smaller row
         # coordinate
         for line_idx, line in enumerate(rock_shape):
-            for char_idx, char in line:
+            for char_idx, char in enumerate(line):
                 if char == SYMBOL_ROCK:
                     rock_parts += [
                         bottom_left_anchor + (line_idx - len(rock_shape), char_idx)
@@ -90,7 +94,7 @@ def jet_direction_data(jet_streams: str) -> Iterator[str]:
         yield next(jet_stream_iterator)
 
 
-def next_rock(rocks: list[ROCK]) -> Iterator[ROCK]:
+def next_rock(rocks: Sequence[ROCK]) -> Iterator[ROCK]:
     """Returns the next rock that will fall down. For part1, loops through a
     list of 5 shapes"""
     rock_iterator = helper_functions.yield_next_from_iterator(rocks)
@@ -118,6 +122,7 @@ def move_rock(
 ) -> ROCK_LOCATION:
     """Move the rock by the given step"""
     next_position = [part_location + step for part_location in cur_position]
+    print(f"{next_position = }")
     if is_valid_location(next_position, cavern):
         return next_position
     return cur_position
@@ -160,7 +165,7 @@ def place_rock_in_cavern(rock_position: ROCK_LOCATION, cavern: np.ndarray) -> No
 
 def part1(data: str) -> int:
     """Advent of code 2022 day 17 - Part 1"""
-    cavern = np.zeros(10000, 7)
+    cavern = np.zeros((10000, 7))
     number_of_rocks = 0
     # Grid dimensions work in reverse. The bottom is the end of the array.
     top_rock_position = cavern.shape[0] - 1
@@ -171,24 +176,27 @@ def part1(data: str) -> int:
         cur_position = move_rock(
             INITIAL_POSITIONS_ROCK[rock], Coordinate(top_rock_position - 3, 0), cavern
         )
+        print(f"Initial position: {cur_position}")
 
         while True:
+            # Rocks move in two steps: first horizontally due to jet streams,
+            # and then it moves down
             jet = next(jet_directions)
             position_after_jet = move_rock_horizontally(cur_position, jet, cavern)
-            position_move_down = move_rock_down(position_after_jet, cavern)
-            if position_move_down[0] == position_after_jet[0]:
+            cur_position = move_rock_down(position_after_jet, cavern)
+            if cur_position[0] == position_after_jet[0]:
                 # If the block didn't move during the move down step, the block
                 # comes to rest. Perform the exit logic.
-                highest_rock_point = get_highest_rock_point(position_move_down)
+                highest_rock_point = get_highest_rock_point(cur_position)
                 top_rock_position = min(highest_rock_point, top_rock_position)
-                place_rock_in_cavern(position_move_down, cavern)
+                place_rock_in_cavern(cur_position, cavern)
+                break
 
         number_of_rocks += 1
-        if number_of_rocks == 2022:
+        if number_of_rocks == 1:
             # stop when 2022 rocks have fallen
             break
-    answer = 0
-    print(data)
+    answer = top_rock_position
 
     print(f"Solution day 17, part 1: {answer}")
     return answer
@@ -228,8 +236,8 @@ def main(parts: str, should_submit: bool = False, load_test_data: bool = False) 
 
 
 if __name__ == "__main__":
-    test_data = False
-    # test_data = True
+    # test_data = False
+    test_data = True
     submit_answer = False
     # submit_answer = True
     main("a", should_submit=submit_answer, load_test_data=test_data)
