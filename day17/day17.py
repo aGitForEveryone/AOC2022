@@ -1,5 +1,5 @@
 import re
-from typing import Iterator
+from typing import Iterator, Sequence, Optional
 
 from aocd import get_data, submit
 import numpy as np
@@ -11,8 +11,57 @@ from helper_functions import Coordinate
 SYMBOL_ROCK = "#"
 SYMBOL_AIR = "."
 
+POSSIBLE_ROCKS = [
+    [SYMBOL_ROCK * 4],
+    [
+        SYMBOL_AIR + SYMBOL_ROCK + SYMBOL_AIR,
+        SYMBOL_ROCK * 3,
+        SYMBOL_AIR + SYMBOL_ROCK + SYMBOL_AIR,
+    ],
+    [
+        SYMBOL_AIR + SYMBOL_AIR + SYMBOL_ROCK,
+        SYMBOL_AIR + SYMBOL_AIR + SYMBOL_ROCK,
+        SYMBOL_ROCK * 3,
+    ],
+    [SYMBOL_ROCK, SYMBOL_ROCK, SYMBOL_ROCK, SYMBOL_ROCK],
+    [SYMBOL_ROCK * 2, SYMBOL_ROCK * 2],
+]
 
-def parse_data(load_test_data: bool = False):
+ROCK = list[str]
+ROCK_LOCATION = list[Coordinate]
+
+
+def initial_position_rocks(
+    rocks: list[ROCK], bottom_left_anchor: Coordinate
+) -> dict[ROCK, ROCK_LOCATION]:
+    """Return the position for each rock if it were to spawn on an empty grid"""
+    initial_positions = {}
+    for rock_shape in rocks:
+        rock_parts = []
+        # Create the coordinate of each rock part in the rock shape
+        # Coordinates work in reverse in grid, moving up is a smaller row
+        # coordinate
+        for line_idx, line in enumerate(rock_shape):
+            for char_idx, char in line:
+                if char == SYMBOL_ROCK:
+                    rock_parts += [
+                        bottom_left_anchor + (line_idx - len(rock_shape), char_idx)
+                    ]
+
+        initial_positions[rock_shape] = rock_parts
+
+    return initial_positions
+
+
+# Every rock spawns in the cavern with its left most position 2 from the edge
+# and its bottom most position 3 from the highest rock. The initial height
+# for each rock is determined assuming the highest rock is at location 0. During
+# the actual rock spawn, the height can be adjusted by shifting the rock up and
+# down depending on the current state of the cavern.
+INITIAL_POSITIONS_ROCK = initial_position_rocks(POSSIBLE_ROCKS, Coordinate(0, 2))
+
+
+def parse_data(load_test_data: bool = False) -> str:
     """Parser function to parse today's data
 
     Args:
@@ -41,74 +90,98 @@ def jet_direction_data(jet_streams: str) -> Iterator[str]:
         yield next(jet_stream_iterator)
 
 
-def next_rock() -> Iterator[list[str]]:
+def next_rock(rocks: list[ROCK]) -> Iterator[ROCK]:
     """Returns the next rock that will fall down. For part1, loops through a
     list of 5 shapes"""
-    rocks = [
-        [SYMBOL_ROCK * 4],
-        [
-            SYMBOL_AIR + SYMBOL_ROCK + SYMBOL_AIR,
-            SYMBOL_ROCK * 3,
-            SYMBOL_AIR + SYMBOL_ROCK + SYMBOL_AIR,
-        ],
-        [
-            SYMBOL_AIR + SYMBOL_AIR + SYMBOL_ROCK,
-            SYMBOL_AIR + SYMBOL_AIR + SYMBOL_ROCK,
-            SYMBOL_ROCK * 3,
-        ],
-        [SYMBOL_ROCK, SYMBOL_ROCK, SYMBOL_ROCK, SYMBOL_ROCK],
-        [SYMBOL_ROCK * 2, SYMBOL_ROCK * 2],
-    ]
     rock_iterator = helper_functions.yield_next_from_iterator(rocks)
     while True:
         yield next(rock_iterator)
 
 
+def is_valid_location(cur_position: ROCK_LOCATION, cavern: np.ndarray) -> bool:
+    """Check if the current position is a valid location for the rock"""
+    grid_shape = Coordinate(cavern.shape)
+
+    for part_location in cur_position:
+        part_in_grid = Coordinate(0, 0) <= part_location < grid_shape
+        # in the numpy representation of the cavern, 0 means empty space, and 1
+        # means occupied space.
+        part_hits_other_rock = cavern[part_location] == 0
+        if not part_in_grid or part_hits_other_rock:
+            return False
+
+    return True
+
+
+def move_rock(
+    cur_position: ROCK_LOCATION, step: Coordinate, cavern: np.ndarray
+) -> ROCK_LOCATION:
+    """Move the rock by the given step"""
+    next_position = [part_location + step for part_location in cur_position]
+    if is_valid_location(next_position, cavern):
+        return next_position
+    return cur_position
+
+
 def move_rock_horizontally(
-    cur_position: list[Coordinate], jet_direction: str, grid: np.ndarray
-) -> Coordinate:
+    cur_position: ROCK_LOCATION, jet_direction: str, cavern: np.ndarray
+) -> ROCK_LOCATION:
     """Move rock horizontally. If the rock hits the wall or another rock,
     movement is blocked. Rock coordinate is assumed to be
     (left, right, bottom, top)"""
     match jet_direction:
         case "<":
-            move = (-1, -1, 0, 0)
+            move = Coordinate(0, -1)
         case ">":
-            move = (1, 1, 0, 0)
+            move = Coordinate(0, 1)
         case _:
             raise ValueError(f"Invalid jet direction, got {jet_direction}")
-    next_position = [part_location + move for part_location in cur_position]
 
-    if next_position[0] < 0 or next_position[1] >= grid.shape[1]:
-        return cur_position
-    # if grid[]
+    # Move all parts of the block
+    return move_rock(cur_position, move, cavern)
+
+
+def move_rock_down(cur_position: ROCK_LOCATION, cavern: np.ndarray) -> ROCK_LOCATION:
+    """Move the rock down."""
+    return move_rock(cur_position, Coordinate(1, 0), cavern)
+
+
+def get_highest_rock_point(cur_position: ROCK_LOCATION) -> int:
+    """Get the highest point of the rock (which is the lowest row coordinate)"""
+    return min([part_location[0] for part_location in cur_position])
+
+
+def place_rock_in_cavern(rock_position: ROCK_LOCATION, cavern: np.ndarray) -> None:
+    """Places the rock in the cavern. Update is done in-place on the cavern.
+    Every location where there is a rock part, the grid value will be a 1"""
+    for part_location in rock_position:
+        cavern[part_location] = 1
 
 
 def part1(data: str) -> int:
     """Advent of code 2022 day 17 - Part 1"""
-    grid = np.zeros(10000, 7)
+    cavern = np.zeros(10000, 7)
     number_of_rocks = 0
     # Grid dimensions work in reverse. The bottom is the end of the array.
-    top_rock_position = grid.shape[0] - 1
+    top_rock_position = cavern.shape[0] - 1
     jet_directions = jet_direction_data(data)
-    for rock in next_rock():
-        left_anchor = 2
-        _anchor = top_rock_position - 3 - len(rock) + 1
-        rock_coordinates = []
-        for line_idx, line in enumerate(rock):
-            for char_idx, char in line:
-                if char == SYMBOL_ROCK:
-                    # left, right, bottom, top
-                    rock_coordinates += [
-                        Coordinate(
-                            left_anchor + char_idx,
-                            left_anchor + char_idx + len(rock[0]) - 1,
-                            top_anchor - line_idx + len(rock) - 1,
-                            top_anchor - line_idx,
-                        )
-                    ]
+    rocks = next_rock(POSSIBLE_ROCKS)
+
+    for rock in rocks:
+        cur_position = move_rock(
+            INITIAL_POSITIONS_ROCK[rock], Coordinate(top_rock_position - 3, 0), cavern
+        )
+
         while True:
             jet = next(jet_directions)
+            position_after_jet = move_rock_horizontally(cur_position, jet, cavern)
+            position_move_down = move_rock_down(position_after_jet, cavern)
+            if position_move_down[0] == position_after_jet[0]:
+                # If the block didn't move during the move down step, the block
+                # comes to rest. Perform the exit logic.
+                highest_rock_point = get_highest_rock_point(position_move_down)
+                top_rock_position = min(highest_rock_point, top_rock_position)
+                place_rock_in_cavern(position_move_down, cavern)
 
         number_of_rocks += 1
         if number_of_rocks == 2022:
