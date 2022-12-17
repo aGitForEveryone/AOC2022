@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import Union, Sequence, Callable, Self, Any
+from typing import Union, Sequence, Callable, Self, Any, Iterator
 import math
 import time
 from functools import wraps
@@ -206,3 +206,14 @@ class LineSegment:
 
     def __repr__(self) -> str:
         return f"{self.start} -> {self.end}"
+
+
+def yield_next_from_iterator(iterable: Sequence) -> Iterator[Any]:
+    """Gets an iterable and perpetually yields from that iterable"""
+    idx = 0
+    while True:
+        yield iterable[idx]
+        idx += 1
+        if idx >= len(iterable):
+            # When we reach the end, reset the index
+            idx = 0
