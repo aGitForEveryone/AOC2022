@@ -277,7 +277,8 @@ def get_unvisited_neighbouring_coordinates(
     cardinal_steps_only: bool = True,
 ) -> list[Coordinate]:
     """List all the possible next locations you can visit from the current
-    location"""
+    location. Valid locations are those that are still within the defined
+    space limits and that have not been visited before."""
     if not cardinal_steps_only:
         raise NotImplementedError(
             f"Currently it's only possible to get neighbouring coordinates in "
