@@ -217,3 +217,18 @@ def yield_next_from_iterator(iterable: Sequence) -> Iterator[Any]:
         if idx >= len(iterable):
             # When we reach the end, reset the index
             idx = 0
+
+
+def print_grid(grid: np.ndarray, symbols: dict = None) -> None:
+    """Prints the grid with the given symbols"""
+    default_symbols = {0: Characters.BLACK_BLOCK.value, 1: Characters.WHITE_BLOCK.value,
+                       2: "o", 3: "+"}
+    if not symbols:
+        symbols = default_symbols
+    else:
+        symbols = default_symbols.update(symbols)
+
+    print()
+    for row in grid:
+        grid_str = "".join([default_symbols[value] for value in row])
+        print(grid_str)

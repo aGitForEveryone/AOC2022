@@ -12,7 +12,7 @@ SYMBOL_ROCK = "#"
 SYMBOL_AIR = "."
 
 POSSIBLE_ROCKS = [
-    tuple((SYMBOL_ROCK * 4)),
+    tuple((SYMBOL_ROCK * 4,)),
     tuple(
         (
             SYMBOL_AIR + SYMBOL_ROCK + SYMBOL_AIR,
@@ -49,7 +49,7 @@ def initial_position_rocks(
             for char_idx, char in enumerate(line):
                 if char == SYMBOL_ROCK:
                     rock_parts += [
-                        bottom_left_anchor + (line_idx - len(rock_shape), char_idx)
+                        bottom_left_anchor + (line_idx - len(rock_shape) + 1, char_idx)
                     ]
 
         initial_positions[rock_shape] = rock_parts
@@ -109,9 +109,10 @@ def is_valid_location(cur_position: ROCK_LOCATION, cavern: np.ndarray) -> bool:
     for part_location in cur_position:
         part_in_grid = Coordinate(0, 0) <= part_location < grid_shape
         # in the numpy representation of the cavern, 0 means empty space, and 1
-        # means occupied space.
-        part_hits_other_rock = cavern[part_location] == 0
-        if not part_in_grid or part_hits_other_rock:
+        # means occupied space. The check of the grid status is moved inside the
+        # conditional to make sure that is only check when part location is on
+        # the grid.
+        if not part_in_grid or cavern[part_location]:
             return False
 
     return True
@@ -122,7 +123,6 @@ def move_rock(
 ) -> ROCK_LOCATION:
     """Move the rock by the given step"""
     next_position = [part_location + step for part_location in cur_position]
-    print(f"{next_position = }")
     if is_valid_location(next_position, cavern):
         return next_position
     return cur_position
@@ -156,27 +156,26 @@ def get_highest_rock_point(cur_position: ROCK_LOCATION) -> int:
     return min([part_location[0] for part_location in cur_position])
 
 
-def place_rock_in_cavern(rock_position: ROCK_LOCATION, cavern: np.ndarray) -> None:
+def place_rock_in_cavern(rock_position: ROCK_LOCATION, cavern: np.ndarray, value: int = 1) -> None:
     """Places the rock in the cavern. Update is done in-place on the cavern.
     Every location where there is a rock part, the grid value will be a 1"""
     for part_location in rock_position:
-        cavern[part_location] = 1
+        cavern[part_location] = value
 
 
 def part1(data: str) -> int:
     """Advent of code 2022 day 17 - Part 1"""
-    cavern = np.zeros((10000, 7))
+    cavern = np.zeros((3200, 7))
     number_of_rocks = 0
     # Grid dimensions work in reverse. The bottom is the end of the array.
-    top_rock_position = cavern.shape[0] - 1
+    top_rock_position = cavern.shape[0]
     jet_directions = jet_direction_data(data)
     rocks = next_rock(POSSIBLE_ROCKS)
 
     for rock in rocks:
         cur_position = move_rock(
-            INITIAL_POSITIONS_ROCK[rock], Coordinate(top_rock_position - 3, 0), cavern
+            INITIAL_POSITIONS_ROCK[rock], Coordinate(top_rock_position - 4, 0), cavern
         )
-        print(f"Initial position: {cur_position}")
 
         while True:
             # Rocks move in two steps: first horizontally due to jet streams,
@@ -184,6 +183,9 @@ def part1(data: str) -> int:
             jet = next(jet_directions)
             position_after_jet = move_rock_horizontally(cur_position, jet, cavern)
             cur_position = move_rock_down(position_after_jet, cavern)
+            # print_cavern = cavern.copy()
+            # place_rock_in_cavern(cur_position, print_cavern, 2)
+            # helper_functions.print_grid(print_cavern[9985:, :])
             if cur_position[0] == position_after_jet[0]:
                 # If the block didn't move during the move down step, the block
                 # comes to rest. Perform the exit logic.
@@ -192,11 +194,12 @@ def part1(data: str) -> int:
                 place_rock_in_cavern(cur_position, cavern)
                 break
 
+        # helper_functions.print_grid(cavern[9985:, :])
         number_of_rocks += 1
-        if number_of_rocks == 1:
+        if number_of_rocks == 2022:
             # stop when 2022 rocks have fallen
             break
-    answer = top_rock_position
+    answer = cavern.shape[0] - top_rock_position
 
     print(f"Solution day 17, part 1: {answer}")
     return answer
@@ -236,8 +239,8 @@ def main(parts: str, should_submit: bool = False, load_test_data: bool = False) 
 
 
 if __name__ == "__main__":
-    # test_data = False
-    test_data = True
+    test_data = False
+    # test_data = True
     submit_answer = False
     # submit_answer = True
     main("a", should_submit=submit_answer, load_test_data=test_data)
