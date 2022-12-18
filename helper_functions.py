@@ -1,3 +1,4 @@
+import itertools
 from enum import Enum
 from typing import Union, Sequence, Callable, Self, Any, Iterator
 import math
@@ -270,10 +271,26 @@ def print_grid(grid: np.ndarray, symbols: dict = None) -> None:
         print(grid_str)
 
 
+def full_space(start: Coordinate, end: Coordinate) -> list[Coordinate]:
+    """Get full space"""
+    assert len(start) == len(end), (
+        f"Start and end coordinates have"
+        f" different dimensions: {start = }"
+        f", {end = }"
+    )
+    dimensions = len(start)
+    possible_axis_coordinate = [
+        tuple(range(start[dimension_idx], end[dimension_idx] + 1))
+        for dimension_idx in range(dimensions)
+    ]
+    return [
+        Coordinate(coordinate)
+        for coordinate in itertools.product(*possible_axis_coordinate)
+    ]
+
+
 def get_unvisited_neighbouring_coordinates(
     cur_location: Coordinate,
-    space_limits: tuple[Coordinate, Coordinate],
-    visited: set[Coordinate],
     cardinal_steps_only: bool = True,
 ) -> list[Coordinate]:
     """List all the possible next locations you can visit from the current
@@ -291,16 +308,52 @@ def get_unvisited_neighbouring_coordinates(
         step = Coordinate(
             *[1 if axis_idx == axis else 0 for axis_idx in range(dimensions)]
         )
-        # step in the positive direction
-        if (next_location := cur_location + step) not in visited and (
-            space_limits[0] <= next_location <= space_limits[1]
-        ):
-            next_locations += [next_location]
-
-        # step in the negative direction
-        if (next_location := cur_location - step) not in visited and (
-            space_limits[0] <= next_location < space_limits[1]
-        ):
-            next_locations += [next_location]
+        # step in the positive and negative direction
+        next_locations += [cur_location + step, cur_location - step]
 
     return next_locations
+
+
+def flood_fill(
+    starting_location: Coordinate, is_valid_coordinate: Callable
+) -> set[Coordinate]:
+    """Flood fill an arbitrary space from the given starting_location. All
+    points to be filled are identified as coordinates. Valid coordinates are
+    checked by the custom function that is passed by is_valid_coordinates.
+
+    Args:
+        starting_location:      Coordinate of the spot where the flood fill
+                                starts
+        is_valid_coordinate:    Callable that takes a single coordinate as input
+                                and returns boolean indicating whether the
+                                coordinate is valid or not. This function does
+                                not need to check whether a coordinate was
+                                already visited. It could, however, check
+                                whether the coordinate is still in the valid
+                                region of space or if it has not hit an
+                                obstacle or edge.
+    """
+    if not is_valid_coordinate(starting_location):
+        print(f"Starting coordinate is not a valid coordinate")
+        return set()
+    current_frontier = [starting_location]
+    visited = set(current_frontier)
+    while True:
+        next_frontier = []
+        for frontier_block in current_frontier:
+            # The next frontier is all the valid coordinates that border the
+            # current frontier
+            valid_neighbours = [
+                coordinate
+                for coordinate in get_unvisited_neighbouring_coordinates(frontier_block)
+                if coordinate not in visited and is_valid_coordinate(coordinate)
+            ]
+            visited.update(valid_neighbours)
+            next_frontier += valid_neighbours
+        if not next_frontier:
+            # if the next frontier is empty, then we have filled all the space
+            # that we could.
+            break
+        current_frontier = next_frontier
+
+    return visited

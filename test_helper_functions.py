@@ -2,14 +2,17 @@
 """
 @author: Tobias Van Damme
 """
+import itertools
 import math
 import unittest
 import json
 from pathlib import Path
+from typing import Callable
 
 import numpy as np
 
 import helper_functions
+from helper_functions import Coordinate
 
 
 TEST_FOLDER = Path(__file__).parent
@@ -144,9 +147,9 @@ class TestHelperFunctions(unittest.TestCase):
 
     def test_coordinate(self):
         """Test coordinate class"""
-        coordinate1 = helper_functions.Coordinate(1, 2)
-        coordinate2 = helper_functions.Coordinate(3, 4)
-        coordinate3 = helper_functions.Coordinate(-2, 49)
+        coordinate1 = Coordinate(1, 2)
+        coordinate2 = Coordinate(3, 4)
+        coordinate3 = Coordinate(-2, 49)
         assert coordinate1 + coordinate2 == (4, 6)
         assert coordinate1 + coordinate3 == (-1, 51)
 
@@ -175,13 +178,8 @@ class TestHelperFunctions(unittest.TestCase):
         assert coordinate2 >= coordinate1 + (0, 2)
         assert coordinate1 <= coordinate2 - (2, 0)
 
-        assert (
-            helper_functions.Coordinate.create_origin()
-            == helper_functions.Coordinate(0, 0)
-        )
-        assert helper_functions.Coordinate.create_origin(
-            3
-        ) == helper_functions.Coordinate(0, 0, 0)
+        assert Coordinate.create_origin() == Coordinate(0, 0)
+        assert Coordinate.create_origin(3) == Coordinate(0, 0, 0)
 
     def test_get_sign(self):
         """Test helper_functions.get_sign"""
@@ -193,6 +191,130 @@ class TestHelperFunctions(unittest.TestCase):
     def test_manual(self):
         """Some manual testing"""
         print(f"{type(helper_functions.Direction.LEFT.value)}")
+
+    def test_full_space(self):
+        """Test helper_functions.full_space"""
+        # 3D space
+        space_limits = (Coordinate(0, 0, 0), Coordinate(2, 2, 2))
+        expected_coordinates = [
+            (0, 0, 0),
+            (0, 0, 1),
+            (0, 0, 2),
+            (0, 1, 0),
+            (0, 1, 1),
+            (0, 1, 2),
+            (0, 2, 0),
+            (0, 2, 1),
+            (0, 2, 2),
+            (1, 0, 0),
+            (1, 0, 1),
+            (1, 0, 2),
+            (1, 1, 0),
+            (1, 1, 1),
+            (1, 1, 2),
+            (1, 2, 0),
+            (1, 2, 1),
+            (1, 2, 2),
+            (2, 0, 0),
+            (2, 0, 1),
+            (2, 0, 2),
+            (2, 1, 0),
+            (2, 1, 1),
+            (2, 1, 2),
+            (2, 2, 0),
+            (2, 2, 1),
+            (2, 2, 2),
+        ]
+        filled_coordinates = helper_functions.full_space(*space_limits)
+        assert len(filled_coordinates) == len(expected_coordinates), (
+            f"Number of filled coordinates: {len(filled_coordinates)}, "
+            f"number of expected coordinates: {len(expected_coordinates)}"
+        )
+        for coordinate in expected_coordinates:
+            assert coordinate in filled_coordinates
+
+        # 2d space
+        space_limits = (Coordinate(0, 0), Coordinate(2, 3))
+        expected_coordinates = [
+            (0, 0),
+            (0, 1),
+            (0, 2),
+            (0, 3),
+            (1, 0),
+            (1, 1),
+            (1, 2),
+            (1, 3),
+            (2, 0),
+            (2, 1),
+            (2, 2),
+            (2, 3),
+        ]
+        filled_coordinates = helper_functions.full_space(*space_limits)
+        assert len(filled_coordinates) == len(expected_coordinates), (
+            f"Number of filled coordinates: {len(filled_coordinates)}, "
+            f"number of expected coordinates: {len(expected_coordinates)}"
+        )
+        for coordinate in expected_coordinates:
+            assert coordinate in filled_coordinates
+
+    def test_flood_fill(self):
+        """Test helper_functions.flood_fill"""
+
+        def check_condition(
+            space_limits: tuple[Coordinate, Coordinate],
+            is_valid_coordinate: Callable,
+            expected_coordinates: list[Coordinate],
+        ) -> None:
+            """Do test in the given space with the given valid coordinate checker"""
+            filled_coordinate = helper_functions.flood_fill(
+                space_limits[0], is_valid_coordinate
+            )
+            assert len(filled_coordinate) == len(expected_coordinates), (
+                f"Number of filled coordinates: {len(filled_coordinate)}, "
+                f"number of expected coordinates: {len(expected_coordinates)}"
+            )
+            for coordinate in expected_coordinates:
+                assert coordinate in filled_coordinate
+
+        # 3D full space
+        def accept_full_space(coordinate: Coordinate) -> bool:
+            return space_limits[0] <= coordinate <= space_limits[1]
+
+        space_limits = Coordinate(0, 0, 0), Coordinate(2, 2, 2)
+        check_condition(
+            space_limits=space_limits,
+            is_valid_coordinate=accept_full_space,
+            expected_coordinates=helper_functions.full_space(*space_limits),
+        )
+
+        # 2D space with wall in middle
+        def wall_in_middle(coordinate: Coordinate) -> bool:
+            """Wall in the second row"""
+            return (space_limits[0] <= coordinate <= space_limits[1]) and (
+                coordinate[0] < 2
+            )
+
+        space_limits = (Coordinate(0, 0), Coordinate(3, 4))
+        expected_coordinates = [
+            Coordinate(coordinate)
+            for coordinate in [
+                (0, 0),
+                (0, 1),
+                (0, 2),
+                (0, 3),
+                (0, 4),
+                (1, 0),
+                (1, 1),
+                (1, 2),
+                (1, 3),
+                (1, 4),
+            ]
+        ]
+        check_condition(
+            space_limits=space_limits,
+            is_valid_coordinate=wall_in_middle,
+            expected_coordinates=expected_coordinates,
+        )
 
 
 if __name__ == "__main__":
