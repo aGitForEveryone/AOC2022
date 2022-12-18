@@ -62,7 +62,10 @@ def digits_to_int(
     """
 
     def convert_line(line):
-        return return_type(map(int, line)) if individual_character else int(line)
+        if isinstance(line, str):
+            return return_type(map(int, line)) if individual_character else int(line)
+        # if line is some sort of iterable, we recurse upon ourselves
+        return return_type(convert_line(item) for item in line)
 
     if isinstance(data, str):
         return convert_line(data)
@@ -152,13 +155,31 @@ class Coordinate(tuple):
         """Calculate the euclidian distance between two coordinates"""
         return math.sqrt(sum([(x - y) ** 2 for x, y in zip(self, other)]))
 
-    def is_touching(self, other: Self, overlap: bool = True) -> bool:
+    def is_touching(
+        self, other: Self, overlap: bool = True, diagonal: bool = True
+    ) -> bool:
         """True is self and other are located at most 1 step away for each axis.
         overlap indicates if coordinates are touching when on the same
-        coordinate."""
-        if not overlap and self == other:
-            return False
-        return all([abs(x - y) <= 1 for x, y in zip(self, other)])
+        coordinate. By default, 1 step diagonally is also counts as touching.
+        If diagonal is False, only 1 step along 1 axis is counted"""
+        if self == other:
+            return overlap
+        distance = [abs(x - y) for x, y in zip(self, other)]
+
+        if diagonal:
+            # Count if the maximum step size is 1. Doesn't matter how many 1's
+            # exist
+            return max(distance) == 1
+
+        # Make sure that there is exacly one 1 in the distance.
+        return sum(distance) == 1
+
+        # distance_iterator = iter(distance)
+        # # any() will iterate over our iterator and return True upon finding the
+        # # first truthy value. The second any() call will continue iteration
+        # # where the first any() call stopped and will check that there are no
+        # # more remaining truthy values left
+        # return any(distance_iterator) and not any(distance_iterator)
 
 
 class Direction(Enum):
@@ -221,8 +242,12 @@ def yield_next_from_iterator(iterable: Sequence) -> Iterator[Any]:
 
 def print_grid(grid: np.ndarray, symbols: dict = None) -> None:
     """Prints the grid with the given symbols"""
-    default_symbols = {0: Characters.BLACK_BLOCK.value, 1: Characters.WHITE_BLOCK.value,
-                       2: "o", 3: "+"}
+    default_symbols = {
+        0: Characters.BLACK_BLOCK.value,
+        1: Characters.WHITE_BLOCK.value,
+        2: "o",
+        3: "+",
+    }
     if not symbols:
         symbols = default_symbols
     else:

@@ -153,8 +153,19 @@ class TestHelperFunctions(unittest.TestCase):
         assert coordinate1.distance(coordinate2) == math.sqrt(8)
 
         assert not coordinate1.is_touching(coordinate2)
-        for distance in [(0, 1), (0, 0), (1, 1), (-1, 1)]:
+        distances = [(0, 1), (0, 0), (1, 1), (-1, 1), (1, 0), (-1, 0)]
+        not_diagonal = [True, True, False, False, True, True]
+        for distance, touching_diagonally in zip(distances, not_diagonal):
             assert coordinate1.is_touching(coordinate1 + distance)
+            assert (
+                coordinate1.is_touching(coordinate1 + distance, diagonal=False)
+                == touching_diagonally
+            ), (
+                f"Testing touching cardinal directions only, "
+                f"expected: {touching_diagonally}, got "
+                f"{coordinate1.is_touching(coordinate1 + distance, diagonal=False)} "
+                f"for coordinate at {coordinate1} and distance {distance}"
+            )
 
         assert not coordinate1.is_touching(coordinate1, overlap=False)
         assert coordinate1.is_touching(coordinate1, overlap=True)
