@@ -2,7 +2,6 @@ import re
 from typing import Self, Optional
 
 from aocd import get_data, submit
-import numpy as np
 
 import helper_functions
 from helper_functions import Coordinate
@@ -230,22 +229,10 @@ def part2(data: tuple[tuple[int]], blocks: list[Block]):
         blocks=block_coordinates,
         space_limits=(space_minimum, space_maximum),
     )
-    # total_number_of_coordinates = 1
-    # for axis_length in space_maximum - space_minimum + (1, 1, 1):
-    #     total_number_of_coordinates *= axis_length
-    # number_of_enclosed_air_particles = (
-    #     total_number_of_coordinates - len(air_coordinates) - len(blocks)
-    # )
 
     # Set neighbours of all blocks
     set_all_neighbours(blocks)
     set_air_as_neighbours(blocks, air_coordinates)
-
-    # Get the number of faces without any neighbours, then deduce 6 from that
-    # for every air particle enclosed by the blocks
-    # total_number_of_exposed_faces = part1(blocks) - 6 * number_of_enclosed_air_particles
-    # Calling the part 1 function on blocks will set each blocks neighbour
-    # in-place
 
     answer = count_faces_exposed_to_air(blocks)
 
@@ -282,8 +269,8 @@ def main(parts: str, should_submit: bool = False, load_test_data: bool = False) 
 if __name__ == "__main__":
     test_data = False
     # test_data = True
-    # submit_answer = False
-    submit_answer = True
+    submit_answer = False
+    # submit_answer = True
     # main("a", should_submit=submit_answer, load_test_data=test_data)
     main("b", should_submit=submit_answer, load_test_data=test_data)
     # main("ab", should_submit=submit_answer, load_test_data=test_data)
