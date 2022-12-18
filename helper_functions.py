@@ -156,6 +156,10 @@ class Coordinate(tuple):
         """Calculate the euclidian distance between two coordinates"""
         return math.sqrt(sum([(x - y) ** 2 for x, y in zip(self, other)]))
 
+    def manhattan_distance(self, other: Self) -> int:
+        """Returns manhattan distance between two coordinates"""
+        return sum([abs(x - y) for x, y in zip(self, other)])
+
     def is_touching(
         self, other: Self, overlap: bool = True, diagonal: bool = True
     ) -> bool:

@@ -178,8 +178,12 @@ class TestHelperFunctions(unittest.TestCase):
         assert coordinate2 >= coordinate1 + (0, 2)
         assert coordinate1 <= coordinate2 - (2, 0)
 
+        # Test creation of origin
         assert Coordinate.create_origin() == Coordinate(0, 0)
         assert Coordinate.create_origin(3) == Coordinate(0, 0, 0)
+
+        # Test manhattan distance
+        assert coordinate1.manhattan_distance(coordinate2) == 4
 
     def test_get_sign(self):
         """Test helper_functions.get_sign"""
