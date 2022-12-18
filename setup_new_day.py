@@ -54,6 +54,7 @@ if __name__ == "__main__":
     import numpy as np
     
     import helper_functions
+    from helper_functions import Coordinate
     
     
     def parse_data(load_test_data: bool = False):
@@ -129,3 +130,55 @@ if __name__ == "__main__":
 
     with open(target_directory / f"day{target_day}.py", "w+") as f:
         f.write(template_code)
+
+    with open(target_directory / f"input{target_day}.1", "w+") as f:
+        f.write('')
+
+    template_code_tests = textwrap.dedent(
+        f"""\
+    # Unit testing
+    \"\"\"
+    @author: Tobias Van Damme
+    \"\"\"
+    
+    import unittest
+    import json
+    from pathlib import Path
+    
+    import numpy as np
+    
+    import helper_functions
+    from . import day{target_day}
+    
+    TEST_FOLDER = Path(__file__).parent
+    
+    with open(TEST_FOLDER / "input{target_day}.1", "r") as f:
+        # For loading example or test data
+        TEST_DATA = f.read()
+    
+    
+    class TestDay{target_day}(unittest.TestCase):
+        \"\"\"Test class to test functions in day{target_day:0>2}.day{target_day}\"\"\"
+    
+        def setUp(self):
+            \"\"\"Setup the tests\"\"\"
+            pass
+    
+        def tearDown(self):
+            \"\"\"Clean up\"\"\"
+            pass
+    
+        def test_part1(self):
+            \"\"\"Test day{target_day}.part1\"\"\"
+            result = day{target_day}.part1(TEST_DATA)
+    
+    
+    if __name__ == "__main__":
+        unittest.main(module="test_day{target_day}")
+
+    """
+    )
+
+    with open(target_directory / f"test_day{target_day}.py", "w+") as f:
+        f.write(template_code_tests)
+
