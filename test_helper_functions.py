@@ -175,6 +175,14 @@ class TestHelperFunctions(unittest.TestCase):
         assert coordinate2 >= coordinate1 + (0, 2)
         assert coordinate1 <= coordinate2 - (2, 0)
 
+        assert (
+            helper_functions.Coordinate.create_origin()
+            == helper_functions.Coordinate(0, 0)
+        )
+        assert helper_functions.Coordinate.create_origin(
+            3
+        ) == helper_functions.Coordinate(0, 0, 0)
+
     def test_get_sign(self):
         """Test helper_functions.get_sign"""
         assert helper_functions.get_sign(-5) == -1

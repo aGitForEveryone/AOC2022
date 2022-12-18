@@ -65,6 +65,8 @@ class Block:
         "back": "front",
     }
 
+    AIR_NEIGHBOUR = 'air'
+
     def __init__(self, coordinate: Coordinate) -> None:
         if len(coordinate) != 3:
             raise ValueError(
@@ -123,10 +125,22 @@ class Block:
             # link self to other at the given neighbour sides counterpart
             other.set_neighbour(self, self.neighbour_pairs[neighbour_side])
 
+    def set_air_as_neighbour(self, air_coordinate: set[Coordinate]) -> None:
+        """Set air as neighbour"""
+        for step_to_neighbour, face in self.map_distance_neighbour.items():
+            neighbour_coordinate = step_to_neighbour + self.coordinate
+            if neighbour_coordinate in air_coordinate:
+                self.neighbours[face] = self.AIR_NEIGHBOUR
+
     @property
     def open_faces(self) -> int:
         """Count the number of faces that do not have a neighbour"""
         return sum([1 for neighbour in self.neighbours.values() if not neighbour])
+
+    @property
+    def faces_exposed_to_air(self) -> int:
+        """Count the number of faces that do not have a neighbour"""
+        return sum([1 for neighbour in self.neighbours.values() if neighbour == self.AIR_NEIGHBOUR])
 
     def print_neighbours(self):
         """Print the neighbours"""
@@ -150,26 +164,90 @@ def count_open_faces(blocks: list[Block]) -> int:
     return sum([block.open_faces for block in blocks])
 
 
-def part1(data: tuple[tuple[int]]) -> int:
+def part1(blocks: list[Block]) -> int:
     """Advent of code 2022 day 18 - Part 1"""
-    blocks = [Block(Coordinate(location)) for location in data]
     set_all_neighbours(blocks)
     answer = count_open_faces(blocks)
-    for block in blocks:
-        block.print_neighbours()
+    # for block in blocks:
+    #     block.print_neighbours()
 
     print(f"Solution day 18, part 1: {answer}")
     return answer
 
 
-def part2(data: tuple[tuple[int]]):
+def fill_space_with_air(
+    starting_location: Coordinate,
+    blocks: list[Coordinate],
+    space_limits: tuple[Coordinate, Coordinate],
+) -> set[Coordinate]:
+    """Fill the space around the blocks with air"""
+    current_frontier = [starting_location]
+    air_coordinates = set(current_frontier)
+    while True:
+        next_frontier = []
+        for frontier_block in current_frontier:
+            # The next frontier is all the coordinates that border the current
+            # frontier, and that are still open space (i.e. not a block)
+            valid_neighbours = [
+                block
+                for block in helper_functions.get_unvisited_neighbouring_coordinates(
+                    frontier_block, space_limits, air_coordinates
+                )
+                if block not in blocks
+            ]
+            air_coordinates.update(valid_neighbours)
+            next_frontier += valid_neighbours
+        if not next_frontier:
+            # if the next frontier is empty, then we have filled all the space
+            # that we could.
+            break
+        current_frontier = next_frontier
+
+    return air_coordinates
+
+
+def set_air_as_neighbours(blocks: list[Block], air_coordinates: set[Coordinate]) -> None:
+    """Set air as neighbour for all open faces facing air"""
+    for block in blocks:
+        block.set_air_as_neighbour(air_coordinates)
+
+
+def count_faces_exposed_to_air(blocks: list[Block]) -> int:
+    """Go through all blocks and count how many sides do not have neighbours"""
+    return sum([block.faces_exposed_to_air for block in blocks])
+
+
+def part2(data: tuple[tuple[int]], blocks: list[Block]):
     """Advent of code 2022 day 18 - Part 2"""
-    space_minumum, space_maximum = get_grid_boundaries(data)
+    space_minimum, space_maximum = get_grid_boundaries(data)
     # Pad the grid with extra space so air can surround all the blocks.
     air_padding = (1, 1, 1)
-    space_minumum -= air_padding
+    space_minimum -= air_padding
     space_maximum += air_padding
-    answer = 0
+    block_coordinates = [Coordinate(location) for location in data]
+    air_coordinates = fill_space_with_air(
+        starting_location=space_minimum,
+        blocks=block_coordinates,
+        space_limits=(space_minimum, space_maximum),
+    )
+    # total_number_of_coordinates = 1
+    # for axis_length in space_maximum - space_minimum + (1, 1, 1):
+    #     total_number_of_coordinates *= axis_length
+    # number_of_enclosed_air_particles = (
+    #     total_number_of_coordinates - len(air_coordinates) - len(blocks)
+    # )
+
+    # Set neighbours of all blocks
+    set_all_neighbours(blocks)
+    set_air_as_neighbours(blocks, air_coordinates)
+
+    # Get the number of faces without any neighbours, then deduce 6 from that
+    # for every air particle enclosed by the blocks
+    # total_number_of_exposed_faces = part1(blocks) - 6 * number_of_enclosed_air_particles
+    # Calling the part 1 function on blocks will set each blocks neighbour
+    # in-place
+
+    answer = count_faces_exposed_to_air(blocks)
 
     print(f"Solution day 18, part 2: {answer}")
     return answer
@@ -187,12 +265,13 @@ def main(parts: str, should_submit: bool = False, load_test_data: bool = False) 
                         called 'input18.1'
     """
     data = parse_data(load_test_data=load_test_data)
+    blocks = [Block(Coordinate(location)) for location in data]
 
     for part in parts:
         if part == "a":
-            aocd_result = part1(data)
+            aocd_result = part1(blocks)
         elif part == "b":
-            aocd_result = part2(data)
+            aocd_result = part2(data, blocks)
         else:
             raise ValueError(f"Wrong part chosen, expecting 'a' or 'b': got {part}")
 
@@ -201,10 +280,10 @@ def main(parts: str, should_submit: bool = False, load_test_data: bool = False) 
 
 
 if __name__ == "__main__":
-    # test_data = False
-    test_data = True
-    submit_answer = False
-    # submit_answer = True
+    test_data = False
+    # test_data = True
+    # submit_answer = False
+    submit_answer = True
     # main("a", should_submit=submit_answer, load_test_data=test_data)
     main("b", should_submit=submit_answer, load_test_data=test_data)
     # main("ab", should_submit=submit_answer, load_test_data=test_data)

@@ -181,6 +181,17 @@ class Coordinate(tuple):
         # # more remaining truthy values left
         # return any(distance_iterator) and not any(distance_iterator)
 
+    @staticmethod
+    def create_origin(dimension: int = 2) -> Self:
+        """Create an origin coordinate, location is zero for every axis for the
+        given dimension"""
+        if dimension <= 0:
+            raise ValueError(
+                f"Invalid dimension given, a real space cannot have a "
+                f" zero of negative number of dimensions"
+            )
+        return Coordinate([0] * dimension)
+
 
 class Direction(Enum):
     LEFT = Coordinate(0, -1)
@@ -257,3 +268,38 @@ def print_grid(grid: np.ndarray, symbols: dict = None) -> None:
     for row in grid:
         grid_str = "".join([default_symbols[value] for value in row])
         print(grid_str)
+
+
+def get_unvisited_neighbouring_coordinates(
+    cur_location: Coordinate,
+    space_limits: tuple[Coordinate, Coordinate],
+    visited: set[Coordinate],
+    cardinal_steps_only: bool = True,
+) -> list[Coordinate]:
+    """List all the possible next locations you can visit from the current
+    location"""
+    if not cardinal_steps_only:
+        raise NotImplementedError(
+            f"Currently it's only possible to get neighbouring coordinates in "
+            f"cardinal directions"
+        )
+    dimensions = len(cur_location)
+    next_locations = []
+    # Check neighbours for each axis of the current location
+    for axis in range(dimensions):
+        step = Coordinate(
+            *[1 if axis_idx == axis else 0 for axis_idx in range(dimensions)]
+        )
+        # step in the positive direction
+        if (next_location := cur_location + step) not in visited and (
+            space_limits[0] <= next_location <= space_limits[1]
+        ):
+            next_locations += [next_location]
+
+        # step in the negative direction
+        if (next_location := cur_location - step) not in visited and (
+            space_limits[0] <= next_location < space_limits[1]
+        ):
+            next_locations += [next_location]
+
+    return next_locations
