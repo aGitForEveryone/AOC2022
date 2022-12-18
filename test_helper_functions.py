@@ -192,6 +192,12 @@ class TestHelperFunctions(unittest.TestCase):
         assert helper_functions.get_sign(0, sign_zero=1) == 1
         assert helper_functions.get_sign(2.5465) == 1
 
+    def test_line_segment(self):
+        """Test helper_functions.LineSegment"""
+        line1 = helper_functions.LineSegment(Coordinate(2, 10), Coordinate(18, 10))
+        line2 = helper_functions.LineSegment(Coordinate(12, 10), Coordinate(12, 10))
+        print(line1.merge(line2))
+
     def test_manual(self):
         """Some manual testing"""
         print(f"{type(helper_functions.Direction.LEFT.value)}")

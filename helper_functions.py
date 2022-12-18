@@ -1,6 +1,6 @@
 import itertools
 from enum import Enum
-from typing import Union, Sequence, Callable, Self, Any, Iterator
+from typing import Union, Sequence, Callable, Self, Any, Iterator, Optional
 import math
 import time
 from functools import wraps
@@ -212,7 +212,15 @@ class Processor:
 
 class LineSegment:
     def __init__(self, start: Coordinate, end: Coordinate) -> None:
-        """Create line segment"""
+        """Create 2D line segment"""
+        if len(start) != 2 or len(end) != 2:
+            raise NotImplementedError(
+                f"Class currently only works for 2D "
+                f"horizontal or vertical line segments. "
+                f"Attempted to create a line segment with"
+                f" start coordinate {start} and end "
+                f"coordinate {end}."
+            )
         if not any([x == y for x, y in zip(start, end)]):
             raise NotImplementedError(
                 f"Attempted to create a diagonal line segment with "
@@ -226,10 +234,56 @@ class LineSegment:
         self.start = start
         self.end = end
 
+    def __eq__(self, other: Self) -> bool:
+        """Check if both line segments have the same start and end point"""
+        return self.start == other.start and self.end == other.end
+
+    def __ne__(self, other) -> bool:
+        """Check if either the start or end point is different"""
+        return self.start != other.start or self.end != other.end
+
     def intersect(self, point: Coordinate) -> bool:
         """Check if point lies on the line segment."""
         # print(f"Intersection? {self.start = }, {point = }, {self.end = }")
         return self.start <= point <= self.end
+
+    @property
+    def is_on_first_axis(self) -> bool:
+        # Line is parallel to a given axis if the other axis' coordinate remains
+        # constant
+        return self.start[1] == self.end[1]
+
+    @property
+    def is_on_second_axis(self) -> bool:
+        # Line is parallel to a given axis if the other axis' coordinate remains
+        # constant
+        return self.start[0] == self.end[0]
+
+    @property
+    def is_point(self):
+        return len(self) == 1
+
+    def _merge_on_axis(self, other: Self, axis: int) -> Self:
+        """Do actual merge on the given axis"""
+        if self.start[axis] > other.end[axis] or self.end[axis] < self.start[axis]:
+            # No overlap
+            return self
+        # Overlap detected, start merge:
+        return LineSegment(
+            Coordinate(min(self.start[axis], other.start[axis]), self.start[1 - axis]),
+            Coordinate(max(self.end[axis], other.end[axis]), self.end[1 - axis]),
+        )
+
+    def merge(self, other: Self) -> Self:
+        """Merge 2 line segments if they lie in the same direction, and they
+        have overlapping points. Otherwise, returns self."""
+        if self.is_on_first_axis and other.is_on_second_axis:
+            return self
+
+        if self.is_on_first_axis:
+            return self._merge_on_axis(other, 0)
+        if self.is_on_second_axis:
+            return self._merge_on_axis(other, 1)
 
     def __iter__(self):
         """Return all points in the line segment"""
@@ -243,6 +297,12 @@ class LineSegment:
 
     def __repr__(self) -> str:
         return f"{self.start} -> {self.end}"
+
+    def __len__(self) -> int:
+        """Return the manhattan distance between start and end. Because we only
+        consider vertical or horizontal lines, this is equal to the length of
+        the line."""
+        return self.start.manhattan_distance(self.end) + 1
 
 
 def yield_next_from_iterator(iterable: Sequence) -> Iterator[Any]:
